@@ -12,7 +12,7 @@ lamp:
   image: tutum/lamp
   restart: always
   ports:
-    - "3306:3306"    
+    - "3316:3306"    
 
 mongo:
   image: mongo

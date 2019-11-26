@@ -12,8 +12,8 @@ import java.sql.Statement;
 import java.util.Arrays;
 
 public class CsvToMySql {
-
-    static final String pathToCsvFiles = "/home/denis/repo/ICE_MovieRecommender/src/main/java/com/camillepradel/movierecommender/utils/";
+	static final String pathMatthieu = "/Users/matthieu/Git";
+    static final String pathToCsvFiles = pathMatthieu + "/ICE_MovieRecommender/src/main/java/com/camillepradel/movierecommender/utils/";
     static final String usersCsvFile = pathToCsvFiles + "users.csv";
     static final String moviesCsvFile = pathToCsvFiles + "movies.csv";
     static final String genresCsvFile = pathToCsvFiles + "genres.csv";
@@ -392,10 +392,10 @@ public class CsvToMySql {
         }
 
         // db connection info
-        String url = "jdbc:mysql://localhost:3306";
-                //+ "?zeroDateTimeBehavior=convertToNull&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC";
+        String url = "jdbc:mysql://localhost:3316"
+                + "?zeroDateTimeBehavior=convertToNull&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC";
         String login = "admin";
-        String password = "6ExgfeNs0dbi";
+        String password = "BNc1qT0VqAt0";
 
         Connection connection = null;
 
