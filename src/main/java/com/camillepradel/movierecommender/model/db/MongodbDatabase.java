@@ -3,37 +3,85 @@ package com.camillepradel.movierecommender.model.db;
 import com.camillepradel.movierecommender.model.Genre;
 import com.camillepradel.movierecommender.model.Movie;
 import com.camillepradel.movierecommender.model.Rating;
+import com.mongodb.Block;
+import com.mongodb.MongoClient;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Sorts;
+import static com.mongodb.client.model.Filters.*;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+
+import org.bson.Document;
 
 public class MongodbDatabase extends AbstractDatabase {
 
     @Override
     public List<Movie> getAllMovies() {
-        // TODO: write query to retrieve all movies from DB
+    	MongoClient mongoClient = new MongoClient();
+    	MongoDatabase database = mongoClient.getDatabase("mongo");
+    	MongoCollection<Document> collection = database.getCollection("movies");
         List<Movie> movies = new LinkedList<Movie>();
-        Genre genre0 = new Genre(0, "genre0");
-        Genre genre1 = new Genre(1, "genre1");
-        Genre genre2 = new Genre(2, "genre2");
-        movies.add(new Movie(0, "Titre 0", Arrays.asList(new Genre[]{genre0, genre1})));
-        movies.add(new Movie(1, "Titre 1", Arrays.asList(new Genre[]{genre0, genre2})));
-        movies.add(new Movie(2, "Titre 2", Arrays.asList(new Genre[]{genre1})));
-        movies.add(new Movie(3, "Titre 3", Arrays.asList(new Genre[]{genre0, genre1, genre2})));
+
+    	collection.find().forEach((Block<Document>) actualMovie -> {
+    		int id = Integer.parseInt(actualMovie.get("id").toString());
+        	String titre = actualMovie.get("title").toString();      	
+        	List<Genre> genresMovie = getListeGenre(id);
+        	
+        	movies.add(new Movie(id,titre,genresMovie));
+    	});
         return movies;
+    }
+    
+    public List<Genre> getListeGenre(int idMovieSearched) {
+    	MongoClient mongoClient = new MongoClient();
+    	MongoDatabase database = mongoClient.getDatabase("mongo");
+    	MongoCollection<Document> collection = database.getCollection("movie_genre");
+		List<Genre> genres = new LinkedList<Genre>();
+    	collection.find(eq("movie_id", idMovieSearched)).forEach((Block<Document>) movieGenreArray -> {
+
+    		int idGenre = Integer.parseInt(movieGenreArray.get("genre_id").toString());
+        	
+    		MongoCollection<Document> genreCollection = database.getCollection("genres");
+        	genreCollection.find(eq("id", idGenre)).forEach((Block<Document>) actualGenre -> {
+        		String name = actualGenre.get("name").toString();
+                int genreId = Integer.parseInt(actualGenre.get("id").toString());
+            	
+                genres.add(new Genre(genreId, name));
+        	});
+    	});
+    		
+        
+        return genres;
     }
 
     @Override
     public List<Movie> getMoviesRatedByUser(int userId) {
         // TODO: write query to retrieve all movies rated by user with id userId
-        List<Movie> movies = new LinkedList<Movie>();
-        Genre genre0 = new Genre(0, "genre0");
-        Genre genre1 = new Genre(1, "genre1");
-        Genre genre2 = new Genre(2, "genre2");
-        movies.add(new Movie(0, "Titre 0", Arrays.asList(new Genre[]{genre0, genre1})));
-        movies.add(new Movie(3, "Titre 3", Arrays.asList(new Genre[]{genre0, genre1, genre2})));
+    	List<Movie> movies = new LinkedList<Movie>();
+    	MongoClient mongoClient = new MongoClient();
+    	MongoDatabase database = mongoClient.getDatabase("mongo");
+    	
+    	MongoCollection<Document> collectionRating = database.getCollection("ratings");
+    	collectionRating.find(eq("user_id", userId)).forEach((Block<Document>) userRating -> {
+    		System.out.println(Integer.parseInt(userRating.get("rating").toString()));
+    		int movieID = Integer.parseInt(userRating.get("movie_id").toString());
+    		MongoCollection<Document> collectionMovie = database.getCollection("movies");
+
+    		collectionMovie.find(eq("id", movieID)).forEach((Block<Document>) actualMovie -> {
+        		int id = Integer.parseInt(actualMovie.get("id").toString());
+            	String titre = actualMovie.get("title").toString();      	
+            	System.out.println(titre);
+            	List<Genre> genresMovie = getListeGenre(id);
+            	
+            	movies.add(new Movie(id,titre,genresMovie));
+        	});
+
+    	});
         return movies;
     }
+    
 
     @Override
     public List<Rating> getRatingsFromUser(int userId) {
