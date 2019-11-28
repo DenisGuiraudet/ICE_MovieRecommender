@@ -12,7 +12,9 @@ import java.sql.Statement;
 import java.util.Arrays;
 
 public class CsvToMySql {
+	
 	static final String pathMatthieu = "/Users/matthieu/Git";
+	static final String pathDenis = "/home/denis/repo";
     static final String pathToCsvFiles = pathMatthieu + "/ICE_MovieRecommender/src/main/java/com/camillepradel/movierecommender/utils/";
     static final String usersCsvFile = pathToCsvFiles + "users.csv";
     static final String moviesCsvFile = pathToCsvFiles + "movies.csv";
