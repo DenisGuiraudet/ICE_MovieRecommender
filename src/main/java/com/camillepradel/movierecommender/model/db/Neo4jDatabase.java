@@ -17,6 +17,7 @@ import org.neo4j.driver.v1.GraphDatabase;
 import org.neo4j.driver.v1.Session;
 import org.neo4j.driver.v1.StatementResult;
 import org.neo4j.driver.v1.types.Node;
+import org.neo4j.driver.v1.types.Relationship;
 import org.neo4j.driver.v1.Record;
 
 public class Neo4jDatabase extends AbstractDatabase {
@@ -25,9 +26,9 @@ public class Neo4jDatabase extends AbstractDatabase {
 	Session session;
 	
 	// db connection info
-    String url = "bolt://localhost:7687" ;
-    String login = "neo4j";
-    String password = "password";
+	String url = "bolt://localhost:7687" ;
+	String login = "neo4j";
+	String password = "password";
 	
 	public Neo4jDatabase() {
 		try {
@@ -120,7 +121,7 @@ public class Neo4jDatabase extends AbstractDatabase {
         {
             Record record = result.next();
             Node u = record.get("u").asNode();
-            Node r = record.get("r").asNode();
+            Relationship r = record.get("r").asRelationship();
             Node m = record.get("m").asNode();
 
             ratings.add(
@@ -195,8 +196,8 @@ public class Neo4jDatabase extends AbstractDatabase {
                     "WITH other_user, count(distinct m.title) AS num_common_movies, target_user " +
                     "ORDER BY num_common_movies DESC " +
                     "LIMIT 1 " +
-                    "MATCH other_user-[rat_other_user:Rating]->(m2:Movie) " +
-                    "WHERE NOT (target_user-[:Rating]->m2) " +
+                    "MATCH (other_user)-[rat_other_user:Rating]->(m2:Movie) " +
+                    "WHERE NOT ((target_user)-[:Rating]->(m2)) " +
                     "RETURN m2 AS movie, " +
                     "rat_other_user AS rating, " +
                     "other_user.id AS user_id " +
@@ -209,7 +210,7 @@ public class Neo4jDatabase extends AbstractDatabase {
                 while (result.hasNext())
                 {
                     Record record = result.next();
-                    Node r = record.get("rating").asNode();
+                    Relationship r = record.get("rating").asRelationship();
                     Node m = record.get("movie").asNode();
 
                     ratings.add(
@@ -231,8 +232,8 @@ public class Neo4jDatabase extends AbstractDatabase {
                     "WITH other_user, count(distinct m.title) AS num_common_movies, target_user " +
                     "ORDER BY num_common_movies DESC " +
                     "LIMIT 5 " +
-                    "MATCH other_user-[rat_other_user:Rating]->(m2:Movie) " +
-                    "WHERE NOT (target_user-[:Rating]->m2) " +
+                    "MATCH (other_user)-[rat_other_user:Rating]->(m2:Movie) " +
+                    "WHERE NOT ((target_user)-[:Rating]->(m2)) " +
                     "RETURN m2 AS movie, " +
                     "rat_other_user AS rating, " +
                     "other_user.id AS user_id " +
@@ -245,7 +246,7 @@ public class Neo4jDatabase extends AbstractDatabase {
                 while (result2.hasNext())
                 {
                     Record record = result2.next();
-                    Node r = record.get("rating").asNode();
+                    Relationship r = record.get("rating").asRelationship();
                     Node m = record.get("movie").asNode();
 
                     ratings.add(
