@@ -45,7 +45,7 @@ public class Neo4jDatabase extends AbstractDatabase {
         List<Movie> movies = new LinkedList<Movie>();
         StatementResult result = session.run(
     		"MATCH (m:Movie)-[mv:MovieGenre]->(g:Genre)"
-    		+ " RETURN m, Collect(g);"
+    		+ " RETURN m, Collect(g) AS g;"
 		);
         while (result.hasNext())
         {
