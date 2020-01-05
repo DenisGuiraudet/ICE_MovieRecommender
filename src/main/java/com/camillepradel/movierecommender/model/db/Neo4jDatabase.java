@@ -66,7 +66,7 @@ public class Neo4jDatabase extends AbstractDatabase {
             movies.add(
         		new Movie(
     				m.get("id").asInt(),
-    				m.get("name").asString(),
+    				m.get("title").asString(),
     				genres
 				)
     		);
@@ -95,7 +95,7 @@ public class Neo4jDatabase extends AbstractDatabase {
             movies.add(
         		new Movie(
     				m.get("id").asInt(),
-    				m.get("name").asString(),
+    				m.get("title").asString(),
     				Arrays.asList(new Genre[]{})
 				)
     		);
@@ -127,7 +127,7 @@ public class Neo4jDatabase extends AbstractDatabase {
         		new Rating(
         			new Movie(
                         m.get("id").asInt(),
-                        m.get("name").asString(),
+                        m.get("title").asString(),
     				    Arrays.asList(new Genre[]{})
 					),
     				u.get("id").asInt(),
@@ -216,7 +216,7 @@ public class Neo4jDatabase extends AbstractDatabase {
                         new Rating(
                             new Movie(
                                 m.get("id").asInt(),
-                                m.get("name").asString(),
+                                m.get("title").asString(),
                                 Arrays.asList(new Genre[]{})
                             ),
                             record.get("user_id").asInt(),
@@ -252,7 +252,7 @@ public class Neo4jDatabase extends AbstractDatabase {
                         new Rating(
                             new Movie(
                                 m.get("id").asInt(),
-                                m.get("name").asString(),
+                                m.get("title").asString(),
                                 Arrays.asList(new Genre[]{})
                             ),
                             record.get("user_id").asInt(),
