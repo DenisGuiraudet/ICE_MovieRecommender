@@ -7,21 +7,33 @@ import com.mongodb.Block;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Sorts;
+import com.mongodb.client.model.UpdateOptions;
+
 import static com.mongodb.client.model.Filters.*;
+
+import java.sql.Timestamp;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.bson.Document;
 
 public class MongodbDatabase extends AbstractDatabase {
+	
+	private MongoDatabase database;
+	
+	public MongodbDatabase() {
+		MongoClient mongoClient = new MongoClient();
+    	this.database = mongoClient.getDatabase("mongo");
+	}
 
     @Override
     public List<Movie> getAllMovies() {
-    	MongoClient mongoClient = new MongoClient();
-    	MongoDatabase database = mongoClient.getDatabase("mongo");
-    	MongoCollection<Document> collection = database.getCollection("movies");
+    	MongoCollection<Document> collection = this.database.getCollection("movies");
         List<Movie> movies = new LinkedList<Movie>();
 
     	collection.find().forEach((Block<Document>) actualMovie -> {
@@ -35,9 +47,7 @@ public class MongodbDatabase extends AbstractDatabase {
     }
     
     public List<Genre> getListeGenre(int idMovieSearched) {
-    	MongoClient mongoClient = new MongoClient();
-    	MongoDatabase database = mongoClient.getDatabase("mongo");
-    	MongoCollection<Document> collection = database.getCollection("movie_genre");
+    	MongoCollection<Document> collection = this.database.getCollection("movie_genre");
 		List<Genre> genres = new LinkedList<Genre>();
     	collection.find(eq("movie_id", idMovieSearched)).forEach((Block<Document>) movieGenreArray -> {
 
@@ -60,14 +70,11 @@ public class MongodbDatabase extends AbstractDatabase {
     public List<Movie> getMoviesRatedByUser(int userId) {
         // TODO: write query to retrieve all movies rated by user with id userId
     	List<Movie> movies = new LinkedList<Movie>();
-    	MongoClient mongoClient = new MongoClient();
-    	MongoDatabase database = mongoClient.getDatabase("mongo");
     	
-    	MongoCollection<Document> collectionRating = database.getCollection("ratings");
+    	MongoCollection<Document> collectionRating = this.database.getCollection("ratings");
     	collectionRating.find(eq("user_id", userId)).forEach((Block<Document>) userRating -> {
-    		System.out.println(Integer.parseInt(userRating.get("rating").toString()));
     		int movieID = Integer.parseInt(userRating.get("movie_id").toString());
-    		MongoCollection<Document> collectionMovie = database.getCollection("movies");
+    		MongoCollection<Document> collectionMovie = this.database.getCollection("movies");
 
     		collectionMovie.find(eq("id", movieID)).forEach((Block<Document>) actualMovie -> {
         		int id = Integer.parseInt(actualMovie.get("id").toString());
@@ -87,16 +94,44 @@ public class MongodbDatabase extends AbstractDatabase {
     public List<Rating> getRatingsFromUser(int userId) {
         // TODO: write query to retrieve all ratings from user with id userId
         List<Rating> ratings = new LinkedList<Rating>();
-        Genre genre0 = new Genre(0, "genre0");
-        Genre genre1 = new Genre(1, "genre1");
-        ratings.add(new Rating(new Movie(0, "Titre 0", Arrays.asList(new Genre[]{genre0, genre1})), userId, 3));
-        ratings.add(new Rating(new Movie(2, "Titre 2", Arrays.asList(new Genre[]{genre1})), userId, 4));
+    	
+    	MongoCollection<Document> collectionRating = this.database.getCollection("ratings");
+    	collectionRating.find(eq("user_id", userId)).forEach((Block<Document>) userRating -> {
+    		int movieID = Integer.parseInt(userRating.get("movie_id").toString());
+    		MongoCollection<Document> collectionMovie = this.database.getCollection("movies");
+
+    		collectionMovie.find(eq("id", movieID)).forEach((Block<Document>) actualMovie -> {
+        		int id = Integer.parseInt(actualMovie.get("id").toString());
+            	String titre = actualMovie.get("title").toString();      	
+            	System.out.println(titre);
+            	List<Genre> genresMovie = getListeGenre(id);
+            	int score = Integer.parseInt(userRating.get("rating").toString());
+            	Movie userMovie = new Movie(id,titre,genresMovie);
+            	ratings.add(new Rating(userMovie, userId, score));
+
+        	});
+
+    	});
         return ratings;
     }
 
     @Override
     public void addOrUpdateRating(Rating rating) {
-        // TODO: add query which
+	    MongoCollection<Document> collectionRating = this.database.getCollection("ratings");	    
+	    int userId = rating.getUserId();
+        int movieId = rating.getMovieId();
+        int ratingValue = rating.getScore();
+        long ts = System.currentTimeMillis() / 1000L;
+        Date date = new Date(ts);
+	    Document movieRating = new Document("user_id", userId)
+	            .append("movie_id", movieId)
+	            .append("rating", ratingValue)
+	            .append("date", date);
+	    UpdateOptions options = new UpdateOptions().upsert(true);
+	    collectionRating.updateOne(Filters.and(eq("user_id", userId),eq("movie_id",movieId)),
+	    		new Document("$set", movieRating),options);
+
+	    // TODO: add query which
         //         - add rating between specified user and movie if it doesn't exist
         //         - update it if it does exist
     }
@@ -105,9 +140,6 @@ public class MongodbDatabase extends AbstractDatabase {
     public List<Rating> processRecommendationsForUser(int userId, int processingMode) {
         // TODO: process recommendations for specified user exploiting other users ratings
         //       use different methods depending on processingMode parameter
-        Genre genre0 = new Genre(0, "genre0");
-        Genre genre1 = new Genre(1, "genre1");
-        Genre genre2 = new Genre(2, "genre2");
         List<Rating> recommendations = new LinkedList<Rating>();
         String titlePrefix;
         if (processingMode == 0) {
@@ -119,10 +151,26 @@ public class MongodbDatabase extends AbstractDatabase {
         } else {
             titlePrefix = "default_";
         }
-        recommendations.add(new Rating(new Movie(0, titlePrefix + "Titre 0", Arrays.asList(new Genre[]{genre0, genre1})), userId, 5));
-        recommendations.add(new Rating(new Movie(1, titlePrefix + "Titre 1", Arrays.asList(new Genre[]{genre0, genre2})), userId, 5));
-        recommendations.add(new Rating(new Movie(2, titlePrefix + "Titre 2", Arrays.asList(new Genre[]{genre1})), userId, 4));
-        recommendations.add(new Rating(new Movie(3, titlePrefix + "Titre 3", Arrays.asList(new Genre[]{genre0, genre1, genre2})), userId, 3));
+        this.getUsersIdCloseToUser(2);
         return recommendations;
     }    
+    
+    public int getUsersIdCloseToUser(int userId) {
+    	List<List<Rating>> closestUser = new LinkedList<List<Rating>>();
+    	int nbrOfMovieInCommon = 0;
+		List<Rating> ratingsUser = this.getRatingsFromUser(userId);
+	    MongoCollection<Document> collectionRating = this.database.getCollection("ratings");	    
+    	collectionRating.find().forEach((Block<Document>) userRating -> {
+    		int actualUserId = Integer.parseInt(userRating.get("user_id").toString());
+    		if(actualUserId != userId) {
+    			int tempNbrMovieInCommon = 0;
+    			List<Rating> ratingsActualUser = this.getRatingsFromUser(actualUserId);
+    			for(int i = 0; i < ratingsActualUser.size(); i ++) {
+    				//if()
+    			}
+    			
+    		}
+    	});
+    	return 0;
+    }
 }
