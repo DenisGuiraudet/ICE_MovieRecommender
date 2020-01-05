@@ -142,9 +142,48 @@ public class Neo4jDatabase extends AbstractDatabase {
 
     @Override
     public void addOrUpdateRating(Rating rating) {
-        // TODO: add query which
-        //         - add rating between specified user and movie if it doesn't exist
-        //         - update it if it does exist
+        StatementResult result = session.run(
+    		"MATCH (u:User { id: $user_id })-[r:Rating]->(m:Movie { id: $movie_id })"
+    		+ " RETURN r;",
+    		parameters(
+				"user_id", rating.userId,
+                "movie_id", rating.movie.id
+			)
+		);
+
+        long ts = System.currentTimeMillis() / 1000L;
+        Date date = new Date(ts);
+
+        if (result.hasNext()) {
+            // EXISTS
+            session.run(
+                "MATCH (u:User { id: $user_id })-[r:Rating]->(m:Movie { id: $movie_id })"
+                + " SET r.rating = $rating_value, r.date = $date;",
+                parameters(
+                    "user_id", rating.userId,
+                    "movie_id", rating.movie.id,
+                    "rating_value", rating.score,
+                    "date", date.toString()
+                )
+            );
+        } else {
+            // DOESN'T EXISTS
+            session.run(
+                "MATCH (u:User),(m:Movie) " + 
+                "WHERE u.id = $user_id AND m.id = $movie_id " + 
+                "CREATE (u)-[r:Rating {"
+                + "rating: $rating_value,"
+                + "date: $date"
+                + "}]->(m)",
+                parameters(
+                    "user_id", rating.userId,
+                    "movie_id", rating.movie.id,
+                    "rating_value", rating.score,
+                    "date", date.toString()
+                )
+            );
+        }
+        
     }
 
     @Override
