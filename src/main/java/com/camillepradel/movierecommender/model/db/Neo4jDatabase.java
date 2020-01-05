@@ -188,26 +188,88 @@ public class Neo4jDatabase extends AbstractDatabase {
 
     @Override
     public List<Rating> processRecommendationsForUser(int userId, int processingMode) {
-        // TODO: process recommendations for specified user exploiting other users ratings
-        //       use different methods depending on processingMode parameter
-        Genre genre0 = new Genre(0, "genre0");
-        Genre genre1 = new Genre(1, "genre1");
-        Genre genre2 = new Genre(2, "genre2");
-        List<Rating> recommendations = new LinkedList<Rating>();
-        String titlePrefix;
-        if (processingMode == 0) {
-            titlePrefix = "0_";
-        } else if (processingMode == 1) {
-            titlePrefix = "1_";
-        } else if (processingMode == 2) {
-            titlePrefix = "2_";
-        } else {
-            titlePrefix = "default_";
+        List<Rating> ratings = new LinkedList<Rating>();
+
+        switch(processingMode) {
+            case 1:
+                StatementResult result = session.run(
+                    "MATCH (target_user:User { id : $user_id })-[:Rating]->(m:Movie) <-[:Rating]-(other_user:User) " +
+                    "WITH other_user, count(distinct m.title) AS num_common_movies, target_user " +
+                    "ORDER BY num_common_movies DESC " +
+                    "LIMIT 1 " +
+                    "MATCH other_user-[rat_other_user:Rating]->(m2:Movie) " +
+                    "WHERE NOT (target_user-[:Rating]->m2) " +
+                    "RETURN m2 AS movie, " +
+                    "rat_other_user AS rating, " +
+                    "other_user.id AS user_id " +
+                    "ORDER BY rat_other_user.note DESC",
+                    parameters(
+                        "user_id", userId
+                    )
+                );
+
+                while (result.hasNext())
+                {
+                    Record record = result.next();
+                    Node r = record.get("rating").asNode();
+                    Node m = record.get("movie").asNode();
+
+                    ratings.add(
+                        new Rating(
+                            new Movie(
+                                m.get("id").asInt(),
+                                m.get("name").asString(),
+                                Arrays.asList(new Genre[]{})
+                            ),
+                            record.get("user_id").asInt(),
+                            r.get("rating").asInt()
+                        )
+                    );
+                }
+                return ratings;
+                break;
+            case 2:
+                StatementResult result = session.run(
+                    "MATCH (target_user:User { id : $user_id })-[:Rating]->(m:Movie) <-[:Rating]-(other_user:User) " +
+                    "WITH other_user, count(distinct m.title) AS num_common_movies, target_user " +
+                    "ORDER BY num_common_movies DESC " +
+                    "LIMIT 5 " +
+                    "MATCH other_user-[rat_other_user:Rating]->(m2:Movie) " +
+                    "WHERE NOT (target_user-[:Rating]->m2) " +
+                    "RETURN m2 AS movie, " +
+                    "rat_other_user AS rating, " +
+                    "other_user.id AS user_id " +
+                    "ORDER BY rat_other_user.note DESC",
+                    parameters(
+                        "user_id", userId
+                    )
+                );
+
+                while (result.hasNext())
+                {
+                    Record record = result.next();
+                    Node r = record.get("rating").asNode();
+                    Node m = record.get("movie").asNode();
+
+                    ratings.add(
+                        new Rating(
+                            new Movie(
+                                m.get("id").asInt(),
+                                m.get("name").asString(),
+                                Arrays.asList(new Genre[]{})
+                            ),
+                            record.get("user_id").asInt(),
+                            r.get("rating").asInt()
+                        )
+                    );
+                }
+                return ratings;
+                break;
+            case 3:
+                break;
+            default:
+                return ratings;
+                break;
         }
-        recommendations.add(new Rating(new Movie(0, titlePrefix + "Titre 0", Arrays.asList(new Genre[]{genre0, genre1})), userId, 5));
-        recommendations.add(new Rating(new Movie(1, titlePrefix + "Titre 1", Arrays.asList(new Genre[]{genre0, genre2})), userId, 5));
-        recommendations.add(new Rating(new Movie(2, titlePrefix + "Titre 2", Arrays.asList(new Genre[]{genre1})), userId, 4));
-        recommendations.add(new Rating(new Movie(3, titlePrefix + "Titre 3", Arrays.asList(new Genre[]{genre0, genre1, genre2})), userId, 3));
-        return recommendations;
     }
 }
