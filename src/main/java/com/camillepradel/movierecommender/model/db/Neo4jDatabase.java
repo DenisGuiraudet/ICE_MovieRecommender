@@ -6,6 +6,7 @@ import com.camillepradel.movierecommender.model.Rating;
 
 import static org.neo4j.driver.v1.Values.parameters;
 
+import java.sql.Date;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -56,11 +57,11 @@ public class Neo4jDatabase extends AbstractDatabase {
 
             List<Genre> genres = new LinkedList<Genre>();
             for(Object g : gList){
-                Node g = ((Node)g);
+                Node gg = ((Node)g);
             	genres.add(
         			new Genre(
-                        g.get("id").asInt(),
-                        g.get("name").asString(),
+                        gg.get("id").asInt(),
+                        gg.get("name").asString()
 					)
     			);
         	}
@@ -146,8 +147,8 @@ public class Neo4jDatabase extends AbstractDatabase {
     		"MATCH (u:User { id: $user_id })-[r:Rating]->(m:Movie { id: $movie_id })"
     		+ " RETURN r;",
     		parameters(
-				"user_id", rating.userId,
-                "movie_id", rating.movie.id
+				"user_id", rating.getUserId(),
+                "movie_id", rating.getMovie().getId()
 			)
 		);
 
@@ -160,9 +161,9 @@ public class Neo4jDatabase extends AbstractDatabase {
                 "MATCH (u:User { id: $user_id })-[r:Rating]->(m:Movie { id: $movie_id })"
                 + " SET r.rating = $rating_value, r.date = $date;",
                 parameters(
-                    "user_id", rating.userId,
-                    "movie_id", rating.movie.id,
-                    "rating_value", rating.score,
+                    "user_id", rating.getUserId(),
+                    "movie_id", rating.getMovie().getId(),
+                    "rating_value", rating.getScore(),
                     "date", date.toString()
                 )
             );
@@ -176,9 +177,9 @@ public class Neo4jDatabase extends AbstractDatabase {
                 + "date: $date"
                 + "}]->(m)",
                 parameters(
-                    "user_id", rating.userId,
-                    "movie_id", rating.movie.id,
-                    "rating_value", rating.score,
+                    "user_id", rating.getUserId(),
+                    "movie_id", rating.getMovie().getId(),
+                    "rating_value", rating.getScore(),
                     "date", date.toString()
                 )
             );
@@ -227,9 +228,8 @@ public class Neo4jDatabase extends AbstractDatabase {
                     );
                 }
                 return ratings;
-                break;
             case 2:
-                StatementResult result = session.run(
+                StatementResult result2 = session.run(
                     "MATCH (target_user:User { id : $user_id })-[:Rating]->(m:Movie) <-[:Rating]-(other_user:User) " +
                     "WITH other_user, count(distinct m.title) AS num_common_movies, target_user " +
                     "ORDER BY num_common_movies DESC " +
@@ -245,9 +245,9 @@ public class Neo4jDatabase extends AbstractDatabase {
                     )
                 );
 
-                while (result.hasNext())
+                while (result2.hasNext())
                 {
-                    Record record = result.next();
+                    Record record = result2.next();
                     Node r = record.get("rating").asNode();
                     Node m = record.get("movie").asNode();
 
@@ -264,12 +264,11 @@ public class Neo4jDatabase extends AbstractDatabase {
                     );
                 }
                 return ratings;
-                break;
             case 3:
                 break;
             default:
                 return ratings;
-                break;
         }
+		return ratings;
     }
 }
