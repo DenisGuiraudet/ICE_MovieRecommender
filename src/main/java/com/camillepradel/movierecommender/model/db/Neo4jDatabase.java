@@ -190,7 +190,7 @@ public class Neo4jDatabase extends AbstractDatabase {
         List<Rating> ratings = new LinkedList<Rating>();
 
         switch(processingMode) {
-            case 1:
+            case 0:
                 StatementResult result = session.run(
                     "MATCH (target_user:User { id : $user_id })-[:Rating]->(m:Movie) <-[:Rating]-(other_user:User) " +
                     "WITH other_user, count(distinct m.title) AS num_common_movies, target_user " +
@@ -225,8 +225,9 @@ public class Neo4jDatabase extends AbstractDatabase {
                         )
                     );
                 }
+                System.out.println(ratings);
                 return ratings;
-            case 2:
+            case 1:
                 StatementResult result2 = session.run(
                     "MATCH (target_user:User { id : $user_id })-[:Rating]->(m:Movie) <-[:Rating]-(other_user:User) " +
                     "WITH other_user, count(distinct m.title) AS num_common_movies, target_user " +
@@ -262,7 +263,7 @@ public class Neo4jDatabase extends AbstractDatabase {
                     );
                 }
                 return ratings;
-            case 3:
+            case 2:
                 break;
             default:
                 return ratings;

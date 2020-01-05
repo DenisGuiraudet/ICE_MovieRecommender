@@ -148,24 +148,28 @@ public class MongodbDatabase extends AbstractDatabase {
         if (processingMode == 0) {
         	List<List<Rating>> ratingsClosestUser = this.getUsersIdCloseToUser(userId,1);
     		List<Rating> ratingsUser = this.getRatingsFromUser(userId);
-    		for(int i = 0; i < ratingsClosestUser.size(); i ++) {
-    			List<Rating> tempRating = ratingsClosestUser.get(i);
-        		for(int j = 0; j < tempRating.size(); j ++) {
-        			if(this.isMovieRated(ratingsUser,tempRating.get(j).getMovie()) == false){
-        				recommendations.add(tempRating.get(j));
-        			}
-        		}	
+    		if(ratingsClosestUser.size() > 0) {    			
+    			for(int i = 0; i < ratingsClosestUser.size(); i ++) {
+    				List<Rating> tempRating = ratingsClosestUser.get(i);
+					for(int j = 0; j < tempRating.size(); j ++) {
+						if(this.isMovieRated(ratingsUser,tempRating.get(j).getMovie()) == false){
+							recommendations.add(tempRating.get(j));
+						}
+					}				
+    			}
     		}
         } else if (processingMode == 1) {
         	List<List<Rating>> ratingsClosestUser = this.getUsersIdCloseToUser(userId,5);
     		List<Rating> ratingsUser = this.getRatingsFromUser(userId);
-    		for(int i = 0; i < ratingsClosestUser.size(); i ++) {
-    			List<Rating> tempRating = ratingsClosestUser.get(i);
-        		for(int j = 0; j < tempRating.size(); j ++) {
-        			if(this.isMovieRated(ratingsUser,tempRating.get(j).getMovie()) == false){
-        				recommendations.add(tempRating.get(j));
-        			}
-        		}	
+    		if(ratingsClosestUser.size() > 0) {    			
+	    		for(int i = 0; i < ratingsClosestUser.size(); i ++) {
+	    			List<Rating> tempRating = ratingsClosestUser.get(i);
+	        		for(int j = 0; j < tempRating.size(); j ++) {
+	        			if(this.isMovieRated(ratingsUser,tempRating.get(j).getMovie()) == false){
+	        				recommendations.add(tempRating.get(j));
+	        			}
+	        		}	
+	    		}
     		}
         } else if (processingMode == 2) {
             titlePrefix = "2_";
@@ -192,14 +196,16 @@ public class MongodbDatabase extends AbstractDatabase {
     					tempNbrMovieInCommon += 1;
     				}
     			}
+    			System.out.println(tempNbrMovieInCommon);
     			closestUser.put(tempNbrMovieInCommon, ratingsActualUser);
     		}
     	});
 	    Map<Integer, List<Rating>> sortedUser = new TreeMap<Integer, List<Rating>>(Collections.reverseOrder());
 	    sortedUser.putAll(closestUser);
+	    ArrayList<List<Rating>> valueList = new ArrayList<List<Rating>>(sortedUser.values());
 	    List<List<Rating>> result = new LinkedList<List<Rating>>();
 	    for(int cpt = 0; cpt < numberOfClosestUser; cpt++) {
-	    	result.add(sortedUser.get(cpt));
+	    	result.add(valueList.get(cpt));
 	    }
 	    return result;
     }
