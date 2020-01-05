@@ -14,11 +14,16 @@ import com.mongodb.client.model.UpdateOptions;
 import static com.mongodb.client.model.Filters.*;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 import org.bson.Document;
 
@@ -79,7 +84,6 @@ public class MongodbDatabase extends AbstractDatabase {
     		collectionMovie.find(eq("id", movieID)).forEach((Block<Document>) actualMovie -> {
         		int id = Integer.parseInt(actualMovie.get("id").toString());
             	String titre = actualMovie.get("title").toString();      	
-            	System.out.println(titre);
             	List<Genre> genresMovie = getListeGenre(id);
             	
             	movies.add(new Movie(id,titre,genresMovie));
@@ -103,7 +107,6 @@ public class MongodbDatabase extends AbstractDatabase {
     		collectionMovie.find(eq("id", movieID)).forEach((Block<Document>) actualMovie -> {
         		int id = Integer.parseInt(actualMovie.get("id").toString());
             	String titre = actualMovie.get("title").toString();      	
-            	System.out.println(titre);
             	List<Genre> genresMovie = getListeGenre(id);
             	int score = Integer.parseInt(userRating.get("rating").toString());
             	Movie userMovie = new Movie(id,titre,genresMovie);
@@ -143,34 +146,71 @@ public class MongodbDatabase extends AbstractDatabase {
         List<Rating> recommendations = new LinkedList<Rating>();
         String titlePrefix;
         if (processingMode == 0) {
-            titlePrefix = "0_";
+        	List<List<Rating>> ratingsClosestUser = this.getUsersIdCloseToUser(userId,1);
+    		List<Rating> ratingsUser = this.getRatingsFromUser(userId);
+    		for(int i = 0; i < ratingsClosestUser.size(); i ++) {
+    			List<Rating> tempRating = ratingsClosestUser.get(i);
+        		for(int j = 0; j < tempRating.size(); j ++) {
+        			if(this.isMovieRated(ratingsUser,tempRating.get(j).getMovie()) == false){
+        				recommendations.add(tempRating.get(j));
+        			}
+        		}	
+    		}
         } else if (processingMode == 1) {
-            titlePrefix = "1_";
+        	List<List<Rating>> ratingsClosestUser = this.getUsersIdCloseToUser(userId,5);
+    		List<Rating> ratingsUser = this.getRatingsFromUser(userId);
+    		for(int i = 0; i < ratingsClosestUser.size(); i ++) {
+    			List<Rating> tempRating = ratingsClosestUser.get(i);
+        		for(int j = 0; j < tempRating.size(); j ++) {
+        			if(this.isMovieRated(ratingsUser,tempRating.get(j).getMovie()) == false){
+        				recommendations.add(tempRating.get(j));
+        			}
+        		}	
+    		}
         } else if (processingMode == 2) {
             titlePrefix = "2_";
         } else {
             titlePrefix = "default_";
         }
-        this.getUsersIdCloseToUser(2);
+        //System.out.println(this.getUsersIdCloseToUser(2));
         return recommendations;
     }    
     
-    public int getUsersIdCloseToUser(int userId) {
-    	List<List<Rating>> closestUser = new LinkedList<List<Rating>>();
-    	int nbrOfMovieInCommon = 0;
+    private List<List<Rating>> getUsersIdCloseToUser(int userId, int numberOfClosestUser) {
 		List<Rating> ratingsUser = this.getRatingsFromUser(userId);
-	    MongoCollection<Document> collectionRating = this.database.getCollection("ratings");	    
-    	collectionRating.find().forEach((Block<Document>) userRating -> {
-    		int actualUserId = Integer.parseInt(userRating.get("user_id").toString());
+		Map<Integer,List<Rating>> closestUser = new HashMap<Integer,List<Rating>>();
+		
+	    MongoCollection<Document> collectionUser = this.database.getCollection("users");	    
+	    collectionUser.find().forEach((Block<Document>) userProfile -> {
+    		int actualUserId = Integer.parseInt(userProfile.get("id").toString());
     		if(actualUserId != userId) {
     			int tempNbrMovieInCommon = 0;
     			List<Rating> ratingsActualUser = this.getRatingsFromUser(actualUserId);
     			for(int i = 0; i < ratingsActualUser.size(); i ++) {
-    				//if()
+    				Rating actualRating = ratingsActualUser.get(i);
+    				if(isMovieRated(ratingsUser,actualRating.getMovie()) == true) {
+    					tempNbrMovieInCommon += 1;
+    				}
     			}
-    			
+    			closestUser.put(tempNbrMovieInCommon, ratingsActualUser);
     		}
     	});
-    	return 0;
+	    Map<Integer, List<Rating>> sortedUser = new TreeMap<Integer, List<Rating>>(Collections.reverseOrder());
+	    sortedUser.putAll(closestUser);
+	    List<List<Rating>> result = new LinkedList<List<Rating>>();
+	    for(int cpt = 0; cpt < numberOfClosestUser; cpt++) {
+	    	result.add(sortedUser.get(cpt));
+	    }
+	    return result;
+    }
+    
+    private boolean isMovieRated(List<Rating> ratingList, Movie movie) {
+		for(int i = 0; i < ratingList.size(); i ++) {
+			Movie actualMovie = ratingList.get(i).getMovie();
+			if(actualMovie.getId() == movie.getId()) {
+				return true;
+			}
+		}
+    	return false;
     }
 }
